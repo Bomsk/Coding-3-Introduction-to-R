@@ -1,0 +1,277 @@
+---
+title: "Coding 3 Final Project"
+author: "Hla Myitzu"
+date: "3rd February 2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Introduction
+
+My motivation for doing this analysis of the long-running British TV show Doctor Who, is its great worldwide popularity and detailed data availability. And although I have not yet watched it myself, it is one of my baby emo Sharky’s favorite shows, so I wanted to see if I could break down and analyze it and see if there are any interesting trends or patterns to recognize.
+
+
+### Load packages
+
+```{r}
+library(ggplot2)
+library(ggrepel)
+library(dplyr)
+library(data.table)
+
+```
+
+
+### Load data and convert to data.tables
+
+```{r}
+drwho_episodes <- fread('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-11-28/drwho_episodes.csv')
+drwho_directors <- fread('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-11-28/drwho_directors.csv')
+drwho_writers <- fread('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-11-28/drwho_writers.csv')
+
+# Convert to data.table
+episodes <- as.data.table(drwho_episodes)
+directors <- as.data.table(drwho_directors)
+writers <- as.data.table(drwho_writers)
+
+```
+
+
+### Table 1. Number of Episodes per Season
+(Please ignore NA values)
+
+This table highlights the distribution of episodes across the 13 seasons of the revived "Doctor Who" series, revealing a general decline in the number of episodes in later seasons. Despite this reduction, the average episode length remains consistent, suggesting a shift in production strategy or narrative focus rather than a decrease in content quality or quantity.
+
+
+
+```{r}
+# Count the number of episodes per season
+episodes_by_season <- episodes[, .N, by = .(season_number)]
+
+ggplot(episodes_by_season, aes(x = factor(season_number), y = N)) + 
+  geom_histogram(stat = "identity", fill = "darkseagreen3") + 
+  labs(x = "Season Number", y = "Number of Episodes", title = "How many episodes in each season?",
+       caption = "Table 1") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold"),
+        plot.caption = element_text(size = 9, face = "bold", hjust = 0)) +
+  guides(fill = FALSE)
+```
+
+### Table 2. Distribution of Ratings Higer Than 80 and Episodes Longer Than An Hour
+(Please ignore NA values)
+
+The analysis aimed at identifying seasons with episodes longer than an hour that also received ratings higher than 80 indicates selective seasons where "Doctor Who" not only extended its storytelling format but also maintained high-quality content, as reflected by the ratings.
+
+
+```{r}
+
+plot_1 <- drwho_episodes[duration > 60 & rating > 80] 
+
+ggplot(plot_1, aes(x = factor(season_number), y = factor(rating), fill = factor(season_number))) + 
+  geom_col() + 
+  labs(x = "Season Number", y = "Rating", title = "Which season has ratings higher than 80 that have episodes\n
+longer than an hour?",
+       caption = "Table 2") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold"),
+        plot.caption = element_text(size = 9, face = "bold", hjust = 0)) +
+  scale_fill_brewer(palette = "Set3") +
+  guides(fill = FALSE)
+
+```
+
+
+### Table 3. Box Plot of Ratings by Season
+(Please ignore NA values)
+
+The consistency in the show's popularity through seasons 1 to 7, marked by a notable peak in season 4, indicates strong audience engagement and approval. However, a visible decline in ratings from season 8 onwards, with a significant drop in season 13, might reflect changes in viewer preferences, the narrative direction, or external factors affecting viewership.
+
+
+
+```{r}
+
+ggplot(episodes, aes(x = factor(season_number), y = rating, fill = factor(season_number))) + 
+  geom_violin() +  
+  labs(x = "Season Number", y = "Rating", title = "Which season has the highest rating?",
+       caption = "Table 3") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold"),
+        plot.caption = element_text(size = 9, face = "bold", hjust = 0)) +
+  guides(fill = FALSE)
+
+```
+
+### Table 4. Bar Chart of Duration by Season
+(Please ignore NA values)
+
+The total playtime per season exhibits variability, with certain seasons significantly exceeding others in total duration. Season 13's notably lower total playtime, attributed to a reduced episode count, highlights significant deviations in season structure, potentially impacting audience engagement.
+
+
+
+```{r}
+
+ggplot(episodes, aes(x = factor(season_number), y = duration)) + 
+  geom_col(fill = "coral3") +
+  labs(x = "Season Number", y = "Duration", title = "Which season has the longest duration?",
+       caption = "Table 4") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold"),
+        plot.caption = element_text(size = 9, face = "bold", hjust = 0)) +
+  guides(fill = FALSE)
+
+```
+
+
+
+
+### Table 5. Number of Episodes by Directors
+
+This analysis identifies which directors have contributed the most to the "Doctor Who" series in terms of episode count. The visualization potentially reveals key figures in the show's production whose vision and direction have significantly shaped its narrative and stylistic elements.
+
+
+```{r fig.width=15, fig.height=8}
+ggplot(directors, aes(x = director)) + 
+  geom_bar(fill = "cadetblue") +
+  labs(x = "Director", y = "Number of Episodes", title = "Which director has the most episodes?",
+       caption = "Table 5") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 14),     # Rotate the x-axis text to prevent overlap
+        axis.text.y = element_text(size = 12),                  
+        axis.title.x = element_text(size = 17, face = "bold"),  
+        axis.title.y = element_text(size = 16, face = "bold"),  
+        plot.title = element_text(size = 24, face = "bold"),
+        plot.caption = element_text(size = 16, face = "bold", hjust = 0))    
+```
+
+### Table 6. Number of Episodes by Writers
+
+Similar to the directors' analysis, this table shows the impact of different writers on the series, highlighting those who have been pivotal in crafting its stories. The variation in episode counts may reflect on the writers' influence on the series' thematic depth and narrative diversity.
+
+
+```{r fig.width=15, fig.height=8}
+ggplot(writers, aes(x = writer)) + 
+  geom_bar(fill = "deeppink3") +
+  labs(x = "Writer", y = "Number of Episodes", title = "Which writer has the most episodes?",
+       caption = "Table 6") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 14),
+        axis.text.y = element_text(size = 12),                  
+        axis.title.x = element_text(size = 17, face = "bold"),  
+        axis.title.y = element_text(size = 16, face = "bold"),  
+        plot.title = element_text(size = 24, face = "bold"),
+        plot.caption = element_text(size = 16, face = "bold", hjust = 0))    
+```
+
+
+
+### Table 7. Number of Episodes and Average Rating by Director
+
+As illustrated with table 7, the intention was to determine whether or not there was a correlation between the number of episodes (vertical tables) a director has directed and the average episode rating (red dots) each director has. The conclusion drawn from this data is that there is little to no correlation between quantity of episodes and rating per director. Because even though Graeme Harper, who has directed the most episodes in total, also has one of the best ratings, Peter Hoar, who only directed one episode also has one of the best ratings. And the rating in general seems to be all over the place and not attributable to the number of episodes worked on. 
+
+
+```{r fig.width=15, fig.height=8}
+# Merge 'episodes' and 'directors'
+merged_data <- merge(episodes, directors, by = "story_number")
+
+# Calculate number of episodes and average rating for each director
+director_stats <- merged_data[, .(count_episodes = .N, average_rating = mean(rating, na.rm = TRUE)), by = .(director)]
+
+ggplot(director_stats, aes(x = reorder(director, -count_episodes), y = count_episodes)) +
+  geom_bar(stat = "identity", fill = "deepskyblue4") +
+  geom_point(aes(y = average_rating * .15), color = "red", size = 3) +  # Multiplying by .15 for better visibility on the same plot
+  labs(x = "Director", y = "Number of Episodes + Average Rating", title = "How does the average rating compare across directors with varying numbers\n
+of directed episodes?",
+       caption = "Table 7") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 14),
+        axis.text.y = element_text(size = 12),                  
+        axis.title.x = element_text(size = 17, face = "bold"),  
+        axis.title.y = element_text(size = 16, face = "bold"),  
+        plot.title = element_text(size = 24, face = "bold"),
+        plot.caption = element_text(size = 16, face = "bold", hjust = 0))    
+```
+
+
+### Conclusion
+
+This analysis of "Doctor Who," motivated by its global popularity and rich dataset, unveiled several fascinating trends that speak to the series' evolution and its engagement with audiences. Through the examination of episode counts, ratings, and the creative forces behind the series, we discerned a narrative of change and adaptation.
+
+The decline in the number of episodes in later seasons, while maintaining consistent episode lengths, suggests a strategic pivot towards enhancing narrative depth or production quality. Notably, select seasons with episodes exceeding an hour and achieving high ratings exemplify the series' capacity to deliver compelling, extended storytelling without sacrificing quality.
+
+The variability in total playtime across seasons reflects the series' flexibility in response to production decisions and perhaps broader industry trends. The analyses of contributions by directors and writers highlighted key figures whose visions have indelibly shaped the "Doctor Who" universe. Specifically, the balance between the number of episodes directed and the average ratings achieved underscores a nuanced relationship between creative output and audience reception.
+
+In essence, this project illuminated the intricate dynamics of "Doctor Who," revealing how shifts in production strategy, creative leadership, and storytelling approaches have contributed to its enduring legacy. As the series continues to evolve, these insights offer a deeper appreciation of its complexity and adaptability, affirming "Doctor Who's" iconic status in science fiction television.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
